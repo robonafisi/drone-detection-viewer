@@ -32,9 +32,9 @@ const RealtimeGraph = () => {
 
   useEffect(() => {
     // Replace with your server URL if not localhost
-    const socket = io("https://e82e-98-97-27-170.ngrok-free.app/", {
+    const socket = io("wss://e82e-98-97-27-170.ngrok-free.app/", {
         transports: ["websocket"],
-    })
+      });      
     // const socket = io("https://f425-98-97-27-170.ngrok-free.app", {
     //     path: "/socket.io/",
     //   });
