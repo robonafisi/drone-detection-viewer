@@ -7,7 +7,7 @@ import RealtimeGraph from '../app/components/realtimegraph';
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState('/DowntownSF.png');
 
-  const handleImageChange = (event) => {
+  const handleImageChange = (event: { target: { value: any; }; }) => {
     const value = event.target.value;
     if (value === 'option1') {
       setSelectedImage('/Pier39.png');
