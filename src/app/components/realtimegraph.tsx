@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend } from 'chart.js';
-import io from 'socket.io-client';
+import { useState, useEffect } from "react";
+import { Line } from "react-chartjs-2";
+import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend } from "chart.js";
+import io from "socket.io-client";
 
-// Register the necessary Chart.js components
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend);
 
-// Define the structure of your chart data
 interface ChartData {
   labels: string[];
   datasets: {
@@ -20,28 +18,46 @@ interface ChartData {
 
 const RealtimeGraph = () => {
   const [data, setData] = useState<ChartData>({
-    labels: [], // Time labels for x-axis
+    labels: [],
     datasets: [
       {
-        label: 'Probability',
-        data: [], // Initial empty data for the graph
+        label: "Probability",
+        data: [],
         fill: false,
-        borderColor: 'rgba(75,192,192,1)',
+        borderColor: "rgba(75,192,192,1)",
         tension: 0.1,
       },
     ],
   });
 
-  // Establish WebSocket connection to stream data
   useEffect(() => {
-    const socket = io('http://your-data-source-url'); // Replace with your data source URL
+    // Replace with your server URL if not localhost
+    const socket = io("https://e82e-98-97-27-170.ngrok-free.app/", {
+        transports: ["websocket"],
+    })
+    // const socket = io("https://f425-98-97-27-170.ngrok-free.app", {
+    //     path: "/socket.io/",
+    //   });
+      
 
-    socket.on('data', (newData: { probability: number }) => {
+    // Log connection status
+    socket.on("connect", () => {
+      console.log("Connected to server:", socket.id);
+      socket.emit("start_stream"); // Start the stream after connecting
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from server");
+    });
+
+    // Log data from the server
+    socket.on("data", (newData: { probability: number }) => {
+      console.log("Received data:", newData); // Log incoming data to verify
+
       setData((prevData) => {
-        const newLabels = [...prevData.labels, new Date().toLocaleTimeString()]; // Add current time as label
-        const newDataset = [...prevData.datasets[0].data, newData.probability]; // Append new probability value
+        const newLabels = [...prevData.labels, new Date().toLocaleTimeString()];
+        const newDataset = [...prevData.datasets[0].data, newData.probability];
 
-        // Limit the number of data points on the graph (e.g., show only the last 20 points)
         if (newLabels.length > 20) {
           newLabels.shift();
           newDataset.shift();
@@ -59,28 +75,27 @@ const RealtimeGraph = () => {
       });
     });
 
-    // Cleanup when component unmounts
+    // Handle errors
+    socket.on("connect_error", (err) => {
+      console.error("Connection error:", err);
+    });
+
     return () => {
       socket.disconnect();
     };
   }, []);
 
   return (
-    <div style={{ width: '80vw', height: '60vh', margin: '0 auto' }}>
+    <div style={{ width: "80vw", height: "60vh", margin: "0 auto" }}>
       <h2>Real-Time Probability Graph</h2>
       <Line
         data={data}
         options={{
-          maintainAspectRatio: false, // Allow the graph to fill the container
-          responsive: true, // Ensure responsiveness
+          maintainAspectRatio: false,
+          responsive: true,
           plugins: {
-            legend: {
-              position: 'top',
-            },
-            title: {
-              display: true,
-              text: 'Real-Time Probability Graph',
-            },
+            legend: { position: "top" },
+            title: { display: true, text: "Real-Time Probability Graph" },
           },
         }}
       />
@@ -89,4 +104,3 @@ const RealtimeGraph = () => {
 };
 
 export default RealtimeGraph;
-
