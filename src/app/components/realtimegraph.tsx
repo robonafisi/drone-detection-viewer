@@ -30,7 +30,7 @@ const RealtimeGraph = () => {
   };
 
   useEffect(() => {
-    const socket = io("wss://e82e-98-97-27-170.ngrok-free.app/", {
+    const socket = io("https://e82e-98-97-27-170.ngrok-free.app/", {
       transports: ["websocket"],
     });
 
