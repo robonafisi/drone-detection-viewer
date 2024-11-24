@@ -19,28 +19,21 @@ interface ChartData {
 const RealtimeGraph = () => {
   const [data, setData] = useState<ChartData>({
     labels: [],
-    datasets: [
-      {
-        label: "Probability",
-        data: [],
-        fill: false,
-        borderColor: "rgba(75,192,192,1)",
-        tension: 0.1,
-      },
-    ],
+    datasets: [],
   });
 
-  useEffect(() => {
-    // Replace with your server URL if not localhost
-    const socket = io("wss://e82e-98-97-27-170.ngrok-free.app/", {
-        transports: ["websocket"],
-      });      
-    // const socket = io("https://f425-98-97-27-170.ngrok-free.app", {
-    //     path: "/socket.io/",
-    //   });
-      
+  // Color mapping for each ID
+  const idColors: { [key: number]: string } = {
+    0: "#00FFFF", // Cyan
+    1: "#FF00FF", // Magenta
+    2: "#FFFF00", // Yellow
+  };
 
-    // Log connection status
+  useEffect(() => {
+    const socket = io("wss://e82e-98-97-27-170.ngrok-free.app/", {
+      transports: ["websocket"],
+    });
+
     socket.on("connect", () => {
       console.log("Connected to server:", socket.id);
       socket.emit("start_stream"); // Start the stream after connecting
@@ -50,32 +43,48 @@ const RealtimeGraph = () => {
       console.log("Disconnected from server");
     });
 
-    // Log data from the server
-    socket.on("data", (newData: { probability: number }) => {
-      console.log("Received data:", newData); // Log incoming data to verify
+    socket.on("data", (newData: { probability: number, id: number }) => {
+      console.log("Received data:", newData);
 
       setData((prevData) => {
         const newLabels = [...prevData.labels, new Date().toLocaleTimeString()];
-        const newDataset = [...prevData.datasets[0].data, newData.probability];
+        if (newLabels.length > 20) newLabels.shift(); // Keep the last 20 timestamps
 
-        if (newLabels.length > 20) {
-          newLabels.shift();
-          newDataset.shift();
+        // Check if dataset for this id already exists
+        const datasets = [...prevData.datasets];
+        const existingDatasetIndex = datasets.findIndex((dataset) => dataset.label === `ID: ${newData.id}`);
+
+        const color = idColors[newData.id] || "#FFFFFF"; // Default to white if id is not 0, 1, or 2
+
+        if (existingDatasetIndex === -1) {
+          // If no dataset exists for this ID, create a new dataset
+          datasets.push({
+            label: `ID: ${newData.id}`,
+            data: [newData.probability],
+            fill: false,
+            borderColor: color,
+            tension: 0.1,
+          });
+        } else {
+          // If dataset exists, update the data for that ID
+          const updatedData = [...datasets[existingDatasetIndex].data, newData.probability];
+          if (updatedData.length > 20) {
+            updatedData.shift(); // Keep the last 20 data points
+          }
+
+          datasets[existingDatasetIndex] = {
+            ...datasets[existingDatasetIndex],
+            data: updatedData,
+          };
         }
 
         return {
           labels: newLabels,
-          datasets: [
-            {
-              ...prevData.datasets[0],
-              data: newDataset,
-            },
-          ],
+          datasets: datasets,
         };
       });
     });
 
-    // Handle errors
     socket.on("connect_error", (err) => {
       console.error("Connection error:", err);
     });
@@ -86,8 +95,8 @@ const RealtimeGraph = () => {
   }, []);
 
   return (
-    <div style={{ width: "80vw", height: "60vh", margin: "0 auto" }}>
-      <h2>Real-Time Probability Graph</h2>
+    <div style={{ width: "80vw", height: "60vh", margin: "0 auto", backgroundColor: "black" }}>
+      <h2 style={{ color: "white" }}>Real-Time Data Graph</h2>
       <Line
         data={data}
         options={{
@@ -95,7 +104,19 @@ const RealtimeGraph = () => {
           responsive: true,
           plugins: {
             legend: { position: "top" },
-            title: { display: true, text: "Real-Time Probability Graph" },
+            title: { display: true, text: "Real-Time Data by ID" },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: "white", // White color for x-axis labels
+              },
+            },
+            y: {
+              ticks: {
+                color: "white", // White color for y-axis labels
+              },
+            },
           },
         }}
       />
